@@ -3,6 +3,30 @@
 Release History
 ---------------
 
+0.9.2 (2016-05-13)
+++++++++++++++++++
+
+  * Fix bug in handling HTML comments when fixing numeric character references
+
+
+0.9.1 (2016-04-26)
+++++++++++++++++++
+
+  * Fix bug when using nested Cache objects
+
+
+0.9.0 (2016-04-16)
+++++++++++++++++++
+
+  * Add support for reading WARC response format
+
+
+0.8.8 (2016-04-11)
+++++++++++++++++++
+
+  * Fix bug in handling of invalid numeric character references
+
+
 0.8.5 (2015-12-07)
 ++++++++++++++++++
 

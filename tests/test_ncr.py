@@ -4,11 +4,13 @@ from io import StringIO
 from wex import ncr
 
 script = """
-<script src="/foo">
+<SCRIPT src="/foo">
     var my_html = "</p>";
     var x = "&#x95;":
-</script>
+</SCRIPT>
 """
+
+elem = "<code>Hello &#x95;</code>"
 
 
 def test_end_char_ref():
@@ -30,6 +32,13 @@ def test_clean_ncr_script_cdata():
 def test_clean_ncr_partial_script():
     html = script[:script.find('</')]
     assert ncr.clean_ncr(html, True) == (html, '', 'script')
+
+
+def test_clean_ncr_bug():
+    dirty = '<!-- 1440548761 -->'
+    eof = True
+    cdata_tag = None
+    assert ncr.clean_ncr(dirty, eof, cdata_tag) == (dirty, '', None)
 
 
 def test_ncr():
@@ -55,3 +64,26 @@ def test_ncr_script():
 def test_ncr_no_semi_colon_terminated():
     content = ncr.InvalidNumCharRefReplacer(StringIO('&#x95,45'))
     assert content.read() == "&#x2022,45"
+
+
+def test_ncr_bug_read_with_size():
+    content = ncr.InvalidNumCharRefReplacer(StringIO(elem))
+    assert content.read(26) == "<code>Hello &#x2022;</code"
+    assert content.read(26) == ">"
+
+
+def test_read_less_that_whole_token():
+    content = ncr.InvalidNumCharRefReplacer(StringIO(elem))
+    assert content.read(2) == "<c"
+    assert content.read() == "ode>Hello &#x2022;</code>"
+
+
+def test_replace_invalid_ncr():
+    content = ncr.replace_invalid_ncr(StringIO(elem))
+    assert content.read() == "<code>Hello &#x2022;</code>"
+
+
+def test_replace_invalid_ncr_comments():
+    html = '<html><!-- end --></html><!-- trailing -->'
+    fp = StringIO(html)
+    assert ncr.replace_invalid_ncr(fp).read() == html
