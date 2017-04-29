@@ -3,6 +3,38 @@
 Release History
 ---------------
 
+
+0.12.0 (2017-04-03)
++++++++++++++++++++
+
+  * Support onInitialized in PhantomJS required modules
+
+
+0.10.1 (2016-09-26)
++++++++++++++++++++
+
+  * Add --label argument for easy process-wide labelling
+
+
+0.9.6 (2016-09-09)
+++++++++++++++++++
+
+  * Fix shutdown error caused by daemon thread for timeout with phantomjs
+  * Fix handling of directories in tarfiles read from stdin (-)
+
+
+0.9.5 (2016-09-06)
+++++++++++++++++++
+
+  * Small fix to avoid non-integer status code when error occur with PhantomJS
+
+
+0.9.4 (2016-06-21)
+++++++++++++++++++
+
+  * Support 'params' keyword argument on URL.get
+
+
 0.9.2 (2016-05-13)
 ++++++++++++++++++
 

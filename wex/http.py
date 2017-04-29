@@ -4,7 +4,8 @@ from __future__ import unicode_literals, print_function
 import wex.py2compat ; assert wex.py2compat
 import io
 import requests
-from six import PY2
+from six import PY2, iteritems
+from six.moves.urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 from requests.sessions import merge_setting
 from gzip import GzipFile
 from .readable import ChainedReadable
@@ -13,8 +14,16 @@ from .http_decoder import DeflateDecoder, GzipDecoder
 
 GZIP_MAGIC = b'\x1f\x8b'
 CRLF = '\r\n'
-timeout = 30.0
+DEFAULT_TIMEOUT = 30.0
 
+
+def remove_url_params(url, params):
+    parsed = urlparse(url)
+    qsl = parse_qsl(parsed.query)
+    for item in iteritems(params):
+        qsl.remove(item)
+    replaced = parsed._replace(query=urlencode(qsl))
+    return urlunparse(replaced)
 
 
 def request(url, method, session=None, **kw):
@@ -34,6 +43,13 @@ def request(url, method, session=None, **kw):
     headers = merge_setting(method.args.get('headers'), kw.get('headers'))
     context = kw.get('context', {})
     auth = merge_setting(method.args.get('auth'), kw.get('auth'))
+    params = merge_setting(method.args.get('params'), kw.get('params'))
+    timeout = merge_setting(method.args.get('timeout'),
+                            kw.get('timeout', DEFAULT_TIMEOUT))
+    # requests will not accept a list, but we might get this from
+    # our JSON method fragment dict so lets convert it to a tuple
+    if isinstance(timeout, list):
+        timeout = tuple(timeout)
 
     response = session.request(
         method.name,
@@ -42,11 +58,15 @@ def request(url, method, session=None, **kw):
         cookies=method.args.get('cookies', None),
         data=method.args.get('data', None),
         headers=headers,
-        params=method.args.get('params', None),
+        params=params,
         proxies=proxies,
         timeout=timeout,
         auth=auth,
     )
+
+    if 'params' in kw:
+        response.url = remove_url_params(response.url, kw['params'])
+
     yield readable_from_response(response, url, decode_content, context)
 
     redirects = session.resolve_redirects(response,
@@ -116,10 +136,12 @@ def readable_from_response(response, url, decode_content, context):
 
 def decode(src):
     content_encoding = src.headers.get('content-encoding', '')
+    content_subtype = src.headers.get_content_subtype()
     declared_as_gzip = (
         src.headers.get_content_subtype() == 'x-gzip' or
         content_encoding == 'x-gzip' or
-        content_encoding == 'gzip'
+        content_encoding == 'gzip' or
+        content_subtype == 'gzip'
     )
     has_gzip_magic = (src.magic_bytes[:2] == b'\037\213')
     if declared_as_gzip and has_gzip_magic:
